@@ -36,7 +36,7 @@ function init3D() {
 
         // --- BRIGHT STAR CLOUD ---
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 6000; 
+        const starCount = 2500; 
         const pos = new Float32Array(starCount * 3);
         for(let i=0; i<starCount; i++) {
             pos[i*3] = (Math.random()-0.5) * 3000;
@@ -76,22 +76,21 @@ function init3D() {
 // --- BOOT & INTRO SEQUENCES ---
 function startBootSequence() {
     const tl = gsap.timeline();
-    tl.to('#loader-bar', { width: "100%", duration: 2.5, ease: "power4.inOut" })
+    tl.to('#loader-bar', { width: "100%", duration: 0.6, ease: "power4.inOut" })
       .to('#boot-loader', { opacity: 0, scale: 0.5, duration: 0.5 })
       .set('.intro-panel', { display: 'flex' })
-      .fromTo('.intro-panel', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 1.2, ease: "expo.out" })
+      .fromTo('.intro-panel', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" })
       .call(() => {
           starSpeed = 8;
-          gsap.to({v: 8}, {v: 0.5, duration: 3, onUpdate: function() { starSpeed = this.targets()[0].v; } });
+          gsap.to({v: 8}, {v: 0.5, duration: 1.5, onUpdate: function() { starSpeed = this.targets()[0].v; } });
       })
-      .to('.member-chip', { opacity: 1, x: 0, stagger: 0.1, duration: 0.8 }, "-=1")
-      .to('.enter-btn', { opacity: 1, scale: 1, duration: 0.8 }, "-=0.5");
+      .to('.enter-btn', { opacity: 1, scale: 1, duration: 0.4 }, "-=0.2");
 }
 
 function dismissIntro() {
-    gsap.to(camera.position, { z: -100, duration: 1.5, ease: "power4.in" });
-    gsap.to('#intro', { opacity: 0, duration: 1, onComplete: () => document.getElementById('intro').remove() });
-    gsap.to('.app-container', { opacity: 1, duration: 1.5, delay: 0.5 });
+    gsap.to(camera.position, { z: -100, duration: 0.6, ease: "power4.in" });
+    gsap.to('#intro', { opacity: 0, duration: 0.4, onComplete: () => document.getElementById('intro').remove() });
+    gsap.to('.app-container', { opacity: 1, duration: 0.8, delay: 0.1 });
 }
 
 // Global Start

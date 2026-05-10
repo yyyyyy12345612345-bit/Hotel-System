@@ -106,7 +106,7 @@ body::after {
     background: rgba(2, 4, 10, 0.72);
     border: 1px solid var(--glass-border);
     border-radius: 22px;
-    box-shadow: 0 35px 80px rgba(0, 0, 0, 0.5), inset 0 0 80px rgba(0, 210, 255, 0.08);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 0 40px rgba(0, 210, 255, 0.05);
     text-align: center;
 }
 
@@ -146,7 +146,15 @@ body::after {
 
 .intro-supervisors { margin-bottom: 1.4rem; opacity: 0; transform: translateY(10px); }
 .sup-label { display: block; font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 0.8rem; }
-.sup-list { display: flex; gap: 1.5rem; color: var(--accent); font-weight: 700; font-family: 'Space Grotesk'; }
+.sup-list { 
+    display: flex; 
+    justify-content: center; /* Center them */
+    gap: 1rem; 
+    font-weight: 800; 
+    font-size: 1rem; 
+    letter-spacing: 1px; 
+    color: var(--accent); 
+}
 
 .enter-btn {
     padding: 1rem 1.5rem; background: transparent; border: 2px solid var(--accent);
@@ -171,7 +179,7 @@ body::after {
 }
 
 aside {
-    background: rgba(2, 4, 10, 0.85); backdrop-filter: blur(25px);
+    background: rgba(2, 4, 10, 0.85); backdrop-filter: blur(15px);
     border: 1px solid var(--glass-border); border-radius: 24px;
     padding: 2.5rem; display: flex; flex-direction: column;
 }
@@ -188,8 +196,56 @@ nav button {
 }
 nav button:hover, nav button.active { background: var(--accent); color: #000; font-weight: 700; }
 
+.side-footer {
+    margin-top: auto;
+    padding-top: 1rem;
+    font-family: 'JetBrains Mono';
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-align: center;
+}
+
+.global-footer {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 2rem;
+    z-index: 1000;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+}
+
+.global-footer a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: 0.3s;
+    position: relative;
+}
+
+.global-footer a::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--accent);
+    transition: 0.3s;
+}
+
+.global-footer a:hover::after {
+    width: 100%;
+}
+
+.global-footer a:hover {
+    text-shadow: 0 0 15px var(--accent);
+}
+
 main {
-    background: rgba(2, 4, 10, 0.6); backdrop-filter: blur(40px);
+    background: rgba(2, 4, 10, 0.6); backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border); border-radius: 24px;
     padding: 3rem; overflow-y: auto;
 }
