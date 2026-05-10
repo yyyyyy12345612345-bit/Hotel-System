@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galala University | Hotel Management System v6.0</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+    <canvas id="canvas-3d" style="position:fixed; inset:0; z-index:0;"></canvas>
+
+    <div id="intro">
+        <div id="boot-loader">
+            <div class="loader-bar-wrap"><div id="loader-bar"></div></div>
+            <div id="boot-status">INITIALIZING SYSTEM...</div>
+        </div>
+        <div class="intro-panel">
+            <div class="intro-logo-container"><img src="logo/idsuhCBcRZ_logos.png" alt="GU"></div>
+            <h1 class="intro-title" id="scramble-title">CSE112</h1>
+            <p class="intro-subtitle">Design & Analysis of Algorithms</p>
+            <div class="intro-team">
+                <div class="member-chip">Hisham Hazem <span>224129079</span></div>
+                <div class="member-chip">Yousef Osama <span>224123927</span></div>
+                <div class="member-chip">Ahmed Ashraf Ibrahim <span>224109618</span></div>
+                <div class="member-chip">Ziad Abdullah Ahmed <span>224113251</span></div>
+            </div>
+            <div class="intro-supervisors">
+                <span class="sup-label">Supervised By</span>
+                <div class="sup-list"><span class="sup-name">Dr. Omar</span> | <span class="sup-name">Dr. Noura</span></div>
+            </div>
+            <button class="enter-btn" onclick="dismissIntro()">ENTER HYPER SYSTEM</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <aside>
+            <div class="side-logo"><img src="logo/idsuhCBcRZ_logos.png"><h2>Hotel System</h2></div>
+            <nav>
+                <button class="active" onclick="switchSection('dashboard', this)">Dashboard</button>
+                <div class="nav-sep">DATA</div>
+                <button onclick="switchSection('add-hotel', this)">Add Hotel</button>
+                <button onclick="switchSection('add-room', this)">Add Room</button>
+                <button onclick="switchSection('add-guest', this)">Add Guest</button>
+                <div class="nav-sep">ALGORITHMS</div>
+                <button onclick="switchSection('sorting', this)">Sorting Lab</button>
+                <button onclick="switchSection('searching', this)">Search Engine</button>
+                <button onclick="switchSection('display-all', this)">Display All</button>
+                <button onclick="switchSection('reports', this)">Reports (Big O)</button>
+            </nav>
+            <div class="side-footer" id="side-clock">00:00:00</div>
+        </aside>
+
+        <main>
+            <header><h1>Central Control</h1><div class="status-tag">CORE ONLINE</div></header>
+
+            <section id="dashboard" class="section-content active">
+                <div class="stats-grid">
+                    <div class="stat-box"><small>Hotels</small><h3 id="stat-hotels">0</h3></div>
+                    <div class="stat-box"><small>Rooms</small><h3 id="stat-rooms">0</h3></div>
+                    <div class="stat-box"><small>Guests</small><h3 id="stat-guests">0</h3></div>
+                    <div class="stat-box"><small>Available</small><h3 id="stat-avail">0</h3></div>
+                </div>
+                <div class="glass-card"><h2>System Ready</h2><p>All Java logic modules are synchronized and active.</p></div>
+            </section>
+
+            <section id="add-hotel" class="section-content">
+                <div class="glass-card"><h2>[1] Add Hotel</h2><div class="form-row"><input type="text" id="h-name" placeholder="Name"><input type="text" id="h-loc" placeholder="Location"><button class="action-btn" onclick="addHotel()">DEPLOY</button></div></div>
+            </section>
+
+            <section id="add-room" class="section-content">
+                <div class="glass-card">
+                    <h2>[2] Add Room</h2>
+                    <div class="form-row"><select id="r-hotel"></select><input type="number" id="r-num" placeholder="Room #"><input type="number" id="r-floor" placeholder="Floor"></div>
+                    <div class="form-row" style="margin-top:1rem;"><input type="text" id="r-view" placeholder="View"><input type="number" id="r-price" placeholder="Price"><select id="r-avail"><option value="true">Available</option><option value="false">Occupied</option></select><button class="action-btn" onclick="addRoom()">INIT</button></div>
+                </div>
+            </section>
+
+            <section id="add-guest" class="section-content">
+                <div class="glass-card"><h2>[3] Add Guest</h2><div class="form-row"><input type="number" id="g-num" placeholder="Guest #"><input type="text" id="g-name" placeholder="Name"><input type="text" id="g-phone" placeholder="Phone"><input type="text" id="g-ssd" placeholder="SSD"><button class="action-btn" onclick="addGuest()">REGISTER</button></div></div>
+            </section>
+
+            <section id="sorting" class="section-content">
+                <div class="glass-card">
+                    <h2>Sorting Algorithms</h2>
+                    <div class="form-row">
+                        <button class="action-btn" onclick="runSort('hotels', 1)">Sort Hotels (Bubble)</button>
+                        <button class="action-btn" onclick="runSort('guests', 2)">Sort Guests (Insertion)</button>
+                        <button class="action-btn" onclick="runSort('rooms', 3)">Sort Rooms (Selection)</button>
+                    </div>
+                    <div id="hotels-sort-box" class="result-box">Hotels Results...</div>
+                    <div id="guests-sort-box" class="result-box" style="margin-top:1rem;">Guests Results...</div>
+                </div>
+            </section>
+
+            <section id="searching" class="section-content">
+                <div class="glass-card">
+                    <h2>Search Engine</h2>
+                    <div class="form-row"><input type="number" id="search-guest-id" placeholder="Guest ID..."><button class="action-btn" onclick="searchGuest()">Search Guest</button><button class="action-btn" onclick="searchAvailable()">Search Avail Rooms</button></div>
+                    <div id="search-guest-box" class="result-box">Guest results...</div>
+                    <div id="search-room-box" class="result-box" style="margin-top:1rem;">Room results...</div>
+                </div>
+            </section>
+
+            <section id="display-all" class="section-content">
+                <div class="glass-card"><h2>Database Report</h2><div id="all-data-dump" class="result-box"></div></div>
+            </section>
+
+            <section id="reports" class="section-content">
+                <div class="glass-card">
+                    <h2>Big O Complexity Analysis</h2>
+                    <pre style="color:var(--accent); font-family:'JetBrains Mono'; line-height:2;">
+1. SORTING (Hotels/Rooms/Guests):
+   • Bubble Sort: O(n²)
+   • Insertion Sort: O(n²)
+   • Selection Sort: O(n²)
+
+2. SEARCHING:
+   • Linear Search (Available): O(h * r)
+   • Binary Search (Guest): O(log g)
+
+3. STORAGE: O(n)
+                    </pre>
+                </div>
+            </section>
+        </main>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="script.js"></script>
+</body>
+</html>
