@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Galala University | Hotel Management System v6.0</title>
+    <meta name="description" content="Advanced Hotel Management System - Full CRUD Dashboard with Real-time Firebase Integration">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo/idsuhCBcRZ_logos.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -12,7 +13,7 @@
     <!-- Firebase SDK (v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // Your Firebase Configuration (Real Credentials)
         const firebaseConfig = {
@@ -31,7 +32,7 @@
 
         // Expose db and methods to global window for script.js access
         window.db = db;
-        window.firebaseMethods = { addDoc, collection, onSnapshot, query, orderBy, updateDoc, doc, arrayUnion };
+        window.firebaseMethods = { addDoc, collection, onSnapshot, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, getDocs };
 
         // Signal that Firebase is ready for script.js
         window.firebaseReady = true;
@@ -42,7 +43,28 @@
 <body>
     <canvas id="canvas-3d" style="position:fixed; inset:0; z-index:0;"></canvas>
 
-    <div id="intro">
+    <!-- Login Screen -->
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="login-logo"><img src="logo/idsuhCBcRZ_logos.png" alt="GU"></div>
+            <h2>Welcome Back</h2>
+            <p>Sign in to access the Hotel Management System</p>
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password">
+                </div>
+                <button class="login-btn" onclick="handleLogin()">SIGN IN</button>
+                <div class="login-error" id="login-error"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="intro" style="display:none;">
         <div id="boot-loader">
             <div class="loader-bar-wrap"><div id="loader-bar"></div></div>
             <div id="boot-status">INITIALIZING SYSTEM...</div>
@@ -50,7 +72,7 @@
         <div class="intro-panel">
             <div class="intro-logo-container"><img src="logo/idsuhCBcRZ_logos.png" alt="GU"></div>
             <h1 class="intro-title" id="scramble-title">Hotel System</h1>
-            <p class="intro-subtitle">CSE112: Design & Analysis of Algorithms</p>
+            <p class="intro-subtitle">CSE112: Design &amp; Analysis of Algorithms</p>
             
             <div class="intro-supervisors" style="margin-top: 1.5rem; margin-bottom: 2.5rem; opacity: 1; transform: none;">
                 <span class="sup-label" style="display: block; font-size: 0.7rem; color: var(--accent); margin-bottom: 0.5rem;">Supervised By</span>
@@ -64,16 +86,40 @@
         <aside>
             <div class="side-logo"><img src="logo/idsuhCBcRZ_logos.png"><h2>Hotel System</h2></div>
             <nav>
-                <button class="active" onclick="switchSection('dashboard', this)">Dashboard</button>
-                <div class="nav-sep">DATA</div>
-                <button onclick="switchSection('add-hotel', this)">Add Hotel</button>
-                <button onclick="switchSection('add-room', this)">Add Room</button>
-                <button onclick="switchSection('add-guest', this)">Add Guest</button>
+                <button class="active" onclick="switchSection('dashboard', this)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    Dashboard
+                </button>
+                <div class="nav-sep">DATA MANAGEMENT</div>
+                <button onclick="switchSection('manage-hotels', this)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v1a3 3 0 003 3h12a3 3 0 003-3V7M6 21V11M18 21V11M3 7l9-4 9 4"/></svg>
+                    Hotels
+                </button>
+                <button onclick="switchSection('manage-rooms', this)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20V8l10-5 10 5v12"/><path d="M6 17v-7h12v7"/><path d="M10 17v-4h4v4"/></svg>
+                    Rooms
+                </button>
+                <button onclick="switchSection('manage-guests', this)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                    Guests
+                </button>
                 <div class="nav-sep">ALGORITHMS</div>
-                <button onclick="switchSection('sorting', this)">Sorting Lab</button>
-                <button onclick="switchSection('searching', this)">Search Engine</button>
-                <button onclick="switchSection('display-all', this)">Display All</button>
-                <button onclick="switchSection('reports', this)">Reports (Big O)</button>
+                <button onclick="switchSection('sorting', this)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M9 18h6"/></svg>
+                    Sorting Lab
+                </button>
+                <button onclick="switchSection('searching', this)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    Search Engine
+                </button>
+                <button onclick="switchSection('display-all', this)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                    Display All
+                </button>
+                <button onclick="switchSection('reports', this)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                    Reports (Big O)
+                </button>
             </nav>
             <div class="side-footer" id="side-clock">00:00:00</div>
         </aside>
@@ -81,32 +127,270 @@
         <main>
             <header><h1>Central Control</h1></header>
 
+            <!-- ═══════════════ DASHBOARD ═══════════════ -->
             <section id="dashboard" class="section-content active">
                 <div class="stats-grid">
-                    <div class="stat-box"><small>Hotels</small><h3 id="stat-hotels">0</h3></div>
-                    <div class="stat-box"><small>Rooms</small><h3 id="stat-rooms">0</h3></div>
-                    <div class="stat-box"><small>Guests</small><h3 id="stat-guests">0</h3></div>
-                    <div class="stat-box"><small>Available</small><h3 id="stat-avail">0</h3></div>
+                    <div class="stat-box" id="stat-hotels-box">
+                        <div class="stat-icon">🏨</div>
+                        <small>Hotels</small><h3 id="stat-hotels">0</h3>
+                        <div class="stat-trend up">↑ Live</div>
+                    </div>
+                    <div class="stat-box" id="stat-rooms-box">
+                        <div class="stat-icon">🚪</div>
+                        <small>Rooms</small><h3 id="stat-rooms">0</h3>
+                        <div class="stat-trend up">↑ Live</div>
+                    </div>
+                    <div class="stat-box" id="stat-guests-box">
+                        <div class="stat-icon">👤</div>
+                        <small>Guests</small><h3 id="stat-guests">0</h3>
+                        <div class="stat-trend up">↑ Live</div>
+                    </div>
+                    <div class="stat-box" id="stat-avail-box">
+                        <div class="stat-icon">✅</div>
+                        <small>Available</small><h3 id="stat-avail">0</h3>
+                        <div class="stat-trend up">↑ Live</div>
+                    </div>
                 </div>
-                <div class="glass-card"><h2>System Ready</h2><p>All Java logic modules are synchronized and active.</p></div>
+                <div class="dashboard-cards">
+                    <div class="glass-card system-status-card">
+                        <div class="card-header">
+                            <h2>⚡ System Status</h2>
+                            <span class="badge badge-online" id="firebase-badge">FIREBASE ONLINE</span>
+                        </div>
+                        <p>All Java logic modules are synchronized and active. Real-time Firebase listeners are monitoring data changes.</p>
+                        <div class="status-indicators">
+                            <div class="indicator"><span class="dot green"></span> Database Connected</div>
+                            <div class="indicator"><span class="dot green"></span> Real-time Sync Active</div>
+                            <div class="indicator"><span class="dot green"></span> CRUD Operations Ready</div>
+                        </div>
+                    </div>
+                    <div class="glass-card quick-actions-card">
+                        <h2>🚀 Quick Actions</h2>
+                        <div class="quick-actions-grid">
+                            <button class="quick-action-btn" onclick="switchSection('manage-hotels', document.querySelector('nav button:nth-child(3)'))">
+                                <span class="qa-icon">➕</span>
+                                <span>Add Hotel</span>
+                            </button>
+                            <button class="quick-action-btn" onclick="switchSection('manage-rooms', document.querySelector('nav button:nth-child(4)'))">
+                                <span class="qa-icon">🔑</span>
+                                <span>Add Room</span>
+                            </button>
+                            <button class="quick-action-btn" onclick="switchSection('manage-guests', document.querySelector('nav button:nth-child(5)'))">
+                                <span class="qa-icon">👥</span>
+                                <span>Add Guest</span>
+                            </button>
+                            <button class="quick-action-btn" onclick="refreshAllData()">
+                                <span class="qa-icon">🔄</span>
+                                <span>Refresh All</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </section>
 
-            <section id="add-hotel" class="section-content">
-                <div class="glass-card"><h2>[1] Add Hotel</h2><div class="form-row"><input type="text" id="h-name" placeholder="Name"><input type="text" id="h-loc" placeholder="Location"><button class="action-btn" onclick="addHotel()">DEPLOY</button></div></div>
-            </section>
-
-            <section id="add-room" class="section-content">
+            <!-- ═══════════════ MANAGE HOTELS (CRUD) ═══════════════ -->
+            <section id="manage-hotels" class="section-content">
                 <div class="glass-card">
-                    <h2>[2] Add Room</h2>
-                    <div class="form-row"><select id="r-hotel"></select><input type="number" id="r-num" placeholder="Room #"><input type="number" id="r-floor" placeholder="Floor"></div>
-                    <div class="form-row" style="margin-top:1rem;"><input type="text" id="r-view" placeholder="View"><input type="number" id="r-price" placeholder="Price"><select id="r-avail"><option value="true">Available</option><option value="false">Occupied</option></select><button class="action-btn" onclick="addRoom()">INIT</button></div>
+                    <div class="card-header">
+                        <h2>🏨 Hotel Management</h2>
+                        <div class="card-actions">
+                            <button class="action-btn refresh-btn" onclick="refreshAllData()" title="Refresh">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                                REFRESH
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Add Hotel Form -->
+                    <div class="crud-form" id="hotel-form">
+                        <h3 id="hotel-form-title">➕ Add New Hotel</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="h-name">Hotel Name</label>
+                                <input type="text" id="h-name" placeholder="e.g. Grand Palace">
+                            </div>
+                            <div class="form-group">
+                                <label for="h-loc">Location</label>
+                                <input type="text" id="h-loc" placeholder="e.g. Cairo, Egypt">
+                            </div>
+                            <div class="form-group form-actions-group">
+                                <button class="action-btn add-btn" id="hotel-submit-btn" onclick="addHotel()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    ADD
+                                </button>
+                                <button class="action-btn cancel-btn" id="hotel-cancel-btn" onclick="cancelHotelEdit()" style="display:none;">CANCEL</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="h-edit-id" value="">
+                    </div>
+
+                    <!-- Hotels Data Table -->
+                    <div class="data-table-wrapper">
+                        <table class="data-table" id="hotels-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Hotel Name</th>
+                                    <th>Location</th>
+                                    <th>Rooms</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hotels-tbody">
+                                <tr><td colspan="5" class="empty-state">No hotels found. Add your first hotel above.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
-            <section id="add-guest" class="section-content">
-                <div class="glass-card"><h2>[3] Add Guest</h2><div class="form-row"><input type="number" id="g-num" placeholder="Guest #"><input type="text" id="g-name" placeholder="Name"><input type="text" id="g-phone" placeholder="Phone"><input type="text" id="g-ssd" placeholder="SSD"><button class="action-btn" onclick="addGuest()">REGISTER</button></div></div>
+            <!-- ═══════════════ MANAGE ROOMS (CRUD) ═══════════════ -->
+            <section id="manage-rooms" class="section-content">
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>🚪 Room Management</h2>
+                        <div class="card-actions">
+                            <button class="action-btn refresh-btn" onclick="refreshAllData()" title="Refresh">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                                REFRESH
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Add Room Form -->
+                    <div class="crud-form" id="room-form">
+                        <h3 id="room-form-title">➕ Add New Room</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="r-hotel">Hotel</label>
+                                <select id="r-hotel"></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="r-num">Room Number</label>
+                                <input type="number" id="r-num" placeholder="e.g. 101">
+                            </div>
+                            <div class="form-group">
+                                <label for="r-floor">Floor</label>
+                                <input type="number" id="r-floor" placeholder="e.g. 1">
+                            </div>
+                        </div>
+                        <div class="form-row" style="margin-top:0.5rem;">
+                            <div class="form-group">
+                                <label for="r-view">View</label>
+                                <input type="text" id="r-view" placeholder="e.g. Sea View">
+                            </div>
+                            <div class="form-group">
+                                <label for="r-price">Price ($)</label>
+                                <input type="number" id="r-price" placeholder="e.g. 250">
+                            </div>
+                            <div class="form-group">
+                                <label for="r-avail">Status</label>
+                                <select id="r-avail">
+                                    <option value="true">Available</option>
+                                    <option value="false">Occupied</option>
+                                </select>
+                            </div>
+                            <div class="form-group form-actions-group">
+                                <button class="action-btn add-btn" id="room-submit-btn" onclick="addRoom()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    ADD
+                                </button>
+                                <button class="action-btn cancel-btn" id="room-cancel-btn" onclick="cancelRoomEdit()" style="display:none;">CANCEL</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="r-edit-hotel-idx" value="">
+                        <input type="hidden" id="r-edit-room-idx" value="">
+                    </div>
+
+                    <!-- Rooms Data Table -->
+                    <div class="data-table-wrapper">
+                        <table class="data-table" id="rooms-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Hotel</th>
+                                    <th>Room #</th>
+                                    <th>Floor</th>
+                                    <th>View</th>
+                                    <th>Price</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rooms-tbody">
+                                <tr><td colspan="8" class="empty-state">No rooms found. Add rooms to hotels first.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
+            <!-- ═══════════════ MANAGE GUESTS (CRUD) ═══════════════ -->
+            <section id="manage-guests" class="section-content">
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>👤 Guest Management</h2>
+                        <div class="card-actions">
+                            <button class="action-btn refresh-btn" onclick="refreshAllData()" title="Refresh">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                                REFRESH
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Add Guest Form -->
+                    <div class="crud-form" id="guest-form">
+                        <h3 id="guest-form-title">➕ Add New Guest</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="g-num">Guest ID</label>
+                                <input type="number" id="g-num" placeholder="e.g. 1001">
+                            </div>
+                            <div class="form-group">
+                                <label for="g-name">Full Name</label>
+                                <input type="text" id="g-name" placeholder="e.g. Ahmed Hassan">
+                            </div>
+                            <div class="form-group">
+                                <label for="g-phone">Phone</label>
+                                <input type="text" id="g-phone" placeholder="e.g. +20 123 456 7890">
+                            </div>
+                            <div class="form-group">
+                                <label for="g-ssd">SSD / National ID</label>
+                                <input type="text" id="g-ssd" placeholder="e.g. 29901012345678">
+                            </div>
+                            <div class="form-group form-actions-group">
+                                <button class="action-btn add-btn" id="guest-submit-btn" onclick="addGuest()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    ADD
+                                </button>
+                                <button class="action-btn cancel-btn" id="guest-cancel-btn" onclick="cancelGuestEdit()" style="display:none;">CANCEL</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="g-edit-id" value="">
+                    </div>
+
+                    <!-- Guests Data Table -->
+                    <div class="data-table-wrapper">
+                        <table class="data-table" id="guests-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Guest ID</th>
+                                    <th>Full Name</th>
+                                    <th>Phone</th>
+                                    <th>SSD</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="guests-tbody">
+                                <tr><td colspan="6" class="empty-state">No guests registered yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══════════════ SORTING ═══════════════ -->
             <section id="sorting" class="section-content">
                 <div class="glass-card">
                     <h2>Sorting Algorithms</h2>
@@ -120,6 +404,7 @@
                 </div>
             </section>
 
+            <!-- ═══════════════ SEARCHING ═══════════════ -->
             <section id="searching" class="section-content">
                 <div class="glass-card">
                     <h2>Search Engine</h2>
@@ -129,10 +414,12 @@
                 </div>
             </section>
 
+            <!-- ═══════════════ DISPLAY ALL ═══════════════ -->
             <section id="display-all" class="section-content">
                 <div class="glass-card"><h2>Database Report</h2><div id="all-data-dump" class="result-box"></div></div>
             </section>
 
+            <!-- ═══════════════ REPORTS ═══════════════ -->
             <section id="reports" class="section-content">
                 <div class="glass-card">
                     <h2>Big O Complexity Analysis</h2>
@@ -155,6 +442,20 @@
             By <a href="https://www.instagram.com/youssef_osama04/#" target="_blank">Yousef</a>
         </footer>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-icon">⚠️</div>
+            <h3>Confirm Delete</h3>
+            <p id="delete-modal-msg">Are you sure you want to delete this item? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="action-btn cancel-btn" onclick="closeDeleteModal()">CANCEL</button>
+                <button class="action-btn delete-btn" id="delete-confirm-btn" onclick="confirmDelete()">DELETE</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast"></div>
     <script src="script.js"></script>
 </body>

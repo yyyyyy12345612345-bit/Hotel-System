@@ -1,7 +1,8 @@
-// ========== SUPREME 3D VISUAL ENGINE v10.0 (STABLE & BRIGHT) ==========
+// ========== SUPREME 3D VISUAL ENGINE & DASHBOARD LOGIC ==========
 let hotels = [];
 let guests = [];
 let starSpeed = 0.5;
+let currentDeleteTarget = null;
 
 // --- 3D ENVIRONMENT ---
 let scene, camera, renderer, starField, planetCore, rings;
@@ -73,10 +74,29 @@ function init3D() {
     } catch(e) { console.error("3D Space Engine Failure", e); }
 }
 
+// --- LOGIN LOGIC ---
+function handleLogin() {
+    const email = document.getElementById('login-email').value;
+    const pass = document.getElementById('login-password').value;
+    const errorDiv = document.getElementById('login-error');
+
+    // Credentials provided by USER
+    if (email === "Youssefosama@gmail.com" && pass === "01020451206") {
+        gsap.to('#login-screen', { opacity: 0, duration: 0.5, onComplete: () => {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('intro').style.display = 'flex';
+            startBootSequence();
+        }});
+    } else {
+        errorDiv.textContent = "Invalid credentials. Access Denied.";
+        gsap.fromTo('.login-card', { x: -10 }, { x: 10, duration: 0.1, repeat: 5, yoyo: true });
+    }
+}
+
 // --- BOOT & INTRO SEQUENCES ---
 function startBootSequence() {
     const tl = gsap.timeline();
-    tl.to('#loader-bar', { width: "100%", duration: 0.6, ease: "power4.inOut" })
+    tl.to('#loader-bar', { width: "100%", duration: 0.8, ease: "power4.inOut" })
       .to('#boot-loader', { opacity: 0, scale: 0.5, duration: 0.5 })
       .set('.intro-panel', { display: 'flex' })
       .fromTo('.intro-panel', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" })
@@ -96,30 +116,24 @@ function dismissIntro() {
 // Global Start
 document.addEventListener('DOMContentLoaded', () => {
     init3D();
-    startBootSequence();
-
-    // Wait for Firebase to be ready before initializing the data system
-    function startWhenFirebaseReady() {
-        if (window.firebaseReady) {
-            console.log("🔥 Firebase detected, starting data system...");
-            initSystem();
-        } else {
-            console.log("⏳ Waiting for Firebase to load...");
-            window.addEventListener('firebase-ready', () => {
-                console.log("🔥 Firebase ready event received, starting data system...");
-                initSystem();
-            });
-        }
-    }
-    startWhenFirebaseReady();
     
-    // Live Clock Engine
+    // Listen for Enter key on login
+    document.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+            handleLogin();
+        }
+    });
+
+    window.addEventListener('firebase-ready', () => {
+        console.log("🔥 Firebase ready, initializing data engine...");
+        initSystem();
+    });
+    
     setInterval(() => {
         const c = document.getElementById('side-clock');
         if(c) c.textContent = new Date().toLocaleTimeString();
     }, 1000);
     
-    // Resize fix
     window.addEventListener('resize', () => {
         if(camera && renderer) {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -129,70 +143,81 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ========== DATA MANAGEMENT ENGINE (FUNCTIONAL) ==========
+// ========== DATA MANAGEMENT ENGINE (CRUD) ==========
 
-/**
- * Initializes the system (Empty for Firebase transition)
- */
 function initSystem() {
-    if (!window.db || !window.firebaseMethods) {
-        console.error("❌ Firebase not available! Cannot initialize data system.");
-        toast("Firebase connection failed. Check console.", "error");
-        return;
-    }
-
+    if (!window.db || !window.firebaseMethods) return;
     const { onSnapshot, collection } = window.firebaseMethods;
     const db = window.db;
 
     // Listen for Hotels (real-time sync)
     onSnapshot(collection(db, "hotels"), (snapshot) => {
-        hotels = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return { id: doc.id, name: data.name, location: data.location, rooms: data.rooms || [] };
-        });
+        hotels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderHotelsTable();
+        renderRoomsTable();
         updateStats();
         updateSelects();
-        if(document.getElementById('display-all').classList.contains('active')) displayAll();
-        console.log("✅ Hotels synced from Firebase:", hotels.length, "hotels");
-    }, (error) => {
-        console.error("❌ Hotels listener error:", error);
-        toast("Firebase hotel sync error: " + error.message, "error");
+        console.log("✅ Hotels synced:", hotels.length);
     });
 
     // Listen for Guests (real-time sync)
     onSnapshot(collection(db, "guests"), (snapshot) => {
         guests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderGuestsTable();
         updateStats();
-        if(document.getElementById('display-all').classList.contains('active')) displayAll();
-        console.log("✅ Guests synced from Firebase:", guests.length, "guests");
-    }, (error) => {
-        console.error("❌ Guests listener error:", error);
-        toast("Firebase guest sync error: " + error.message, "error");
+        console.log("✅ Guests synced:", guests.length);
     });
-
-    updateStats();
-    updateSelects();
-    console.log("✅ System initialized. Real-time Firebase listeners active.");
-    toast("System connected to Firebase ✓");
 }
 
-// --- CORE ACTIONS ---
-
+// --- HOTEL ACTIONS ---
 async function addHotel() {
     const name = document.getElementById('h-name').value;
     const loc = document.getElementById('h-loc').value;
-    if(!name || !loc) return toast("Missing required fields!", "error");
+    const editId = document.getElementById('h-edit-id').value;
 
-    const { addDoc, collection } = window.firebaseMethods;
+    if(!name || !loc) return toast("Fields cannot be empty!", "error");
+
+    const { addDoc, updateDoc, doc, collection } = window.firebaseMethods;
     try {
-        await addDoc(collection(window.db, "hotels"), { name, location: loc, rooms: [] });
-        toast(`Hotel '${name}' deployed to Firebase.`);
+        if (editId) {
+            await updateDoc(doc(window.db, "hotels", editId), { name, location: loc });
+            toast("Hotel updated successfully.");
+            cancelHotelEdit();
+        } else {
+            await addDoc(collection(window.db, "hotels"), { name, location: loc, rooms: [] });
+            toast(`Hotel '${name}' deployed.`);
+        }
         clearInputs(['h-name', 'h-loc']);
-    } catch(e) {
-        toast("Firebase Error: " + e.message, "error");
-    }
+    } catch(e) { toast("Firebase Error: " + e.message, "error"); }
 }
 
+function editHotel(id) {
+    const hotel = hotels.find(h => h.id === id);
+    if(!hotel) return;
+    
+    document.getElementById('h-name').value = hotel.name;
+    document.getElementById('h-loc').value = hotel.location;
+    document.getElementById('h-edit-id').value = id;
+    
+    const form = document.getElementById('hotel-form');
+    form.classList.add('editing');
+    document.getElementById('hotel-form-title').textContent = "📝 Edit Hotel";
+    document.getElementById('hotel-submit-btn').textContent = "UPDATE";
+    document.getElementById('hotel-cancel-btn').style.display = "inline-block";
+    
+    gsap.from(form, { backgroundColor: "rgba(255, 179, 0, 0.1)", duration: 0.5 });
+}
+
+function cancelHotelEdit() {
+    document.getElementById('h-edit-id').value = "";
+    document.getElementById('hotel-form').classList.remove('editing');
+    document.getElementById('hotel-form-title').textContent = "➕ Add New Hotel";
+    document.getElementById('hotel-submit-btn').textContent = "ADD";
+    document.getElementById('hotel-cancel-btn').style.display = "none";
+    clearInputs(['h-name', 'h-loc']);
+}
+
+// --- ROOM ACTIONS ---
 async function addRoom() {
     const hIdx = document.getElementById('r-hotel').value;
     const num = parseInt(document.getElementById('r-num').value);
@@ -202,22 +227,20 @@ async function addRoom() {
     const avail = document.getElementById('r-avail').value === "true";
 
     if(isNaN(num) || isNaN(price)) return toast("Invalid numerical data!", "error");
-    if(!hotels[hIdx]) return toast("Select a valid hotel!", "error");
+    if(!hotels[hIdx]) return toast("Select a hotel!", "error");
 
-    const { updateDoc, doc, arrayUnion } = window.firebaseMethods;
-    const hotelId = hotels[hIdx].id;
+    const { updateDoc, doc } = window.firebaseMethods;
+    const hotel = hotels[hIdx];
+    const newRooms = [...(hotel.rooms || []), { number: num, floor, view, price, available: avail }];
 
     try {
-        await updateDoc(doc(window.db, "hotels", hotelId), {
-            rooms: arrayUnion({ number: num, floor, view, price, available: avail })
-        });
-        toast(`Room ${num} initialized in ${hotels[hIdx].name}.`);
+        await updateDoc(doc(window.db, "hotels", hotel.id), { rooms: newRooms });
+        toast(`Room ${num} initialized in ${hotel.name}.`);
         clearInputs(['r-num', 'r-floor', 'r-view', 'r-price']);
-    } catch(e) {
-        toast("Firebase Error: " + e.message, "error");
-    }
+    } catch(e) { toast("Firebase Error: " + e.message, "error"); }
 }
 
+// --- GUEST ACTIONS ---
 async function addGuest() {
     const num = parseInt(document.getElementById('g-num').value);
     const name = document.getElementById('g-name').value;
@@ -229,47 +252,151 @@ async function addGuest() {
     const { addDoc, collection } = window.firebaseMethods;
     try {
         await addDoc(collection(window.db, "guests"), { number: num, name, phone, ssd });
-        toast(`Guest '${name}' registered in Firebase.`);
+        toast(`Guest '${name}' registered.`);
         clearInputs(['g-num', 'g-name', 'g-phone', 'g-ssd']);
-    } catch(e) {
-        toast("Firebase Error: " + e.message, "error");
-    }
+    } catch(e) { toast("Firebase Error: " + e.message, "error"); }
 }
 
-// --- ALGORITHMS (SORTING) ---
+// --- DELETE OPERATIONS ---
+function openDeleteModal(type, id, extra = null) {
+    currentDeleteTarget = { type, id, extra };
+    const modal = document.getElementById('delete-modal');
+    const msg = document.getElementById('delete-modal-msg');
+    
+    if (type === 'hotel') msg.textContent = "Are you sure you want to delete this hotel and all its data?";
+    else if (type === 'room') msg.textContent = "Remove this room from the hotel records?";
+    else if (type === 'guest') msg.textContent = "Delete this guest registration permanently?";
+    
+    modal.classList.add('active');
+}
 
+function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.remove('active');
+    currentDeleteTarget = null;
+}
+
+async function confirmDelete() {
+    if (!currentDeleteTarget) return;
+    const { type, id, extra } = currentDeleteTarget;
+    const { deleteDoc, doc, updateDoc } = window.firebaseMethods;
+
+    try {
+        if (type === 'hotel') {
+            await deleteDoc(doc(window.db, "hotels", id));
+            toast("Hotel deleted successfully.");
+        } else if (type === 'guest') {
+            await deleteDoc(doc(window.db, "guests", id));
+            toast("Guest record removed.");
+        } else if (type === 'room') {
+            const hotel = hotels.find(h => h.id === id);
+            const updatedRooms = hotel.rooms.filter((_, idx) => idx !== extra);
+            await updateDoc(doc(window.db, "hotels", id), { rooms: updatedRooms });
+            toast("Room removed from hotel.");
+        }
+    } catch(e) { toast("Delete failed: " + e.message, "error"); }
+    closeDeleteModal();
+}
+
+// --- RENDER TABLES ---
+function renderHotelsTable() {
+    const tbody = document.getElementById('hotels-tbody');
+    if (hotels.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No hotels found. Add your first hotel above.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = hotels.map((h, i) => `
+        <tr>
+            <td>${i+1}</td>
+            <td><strong>${h.name}</strong></td>
+            <td>${h.location}</td>
+            <td><span class="badge badge-online">${h.rooms ? h.rooms.length : 0} Rooms</span></td>
+            <td>
+                <div class="row-actions">
+                    <button class="action-btn edit-btn" onclick="editHotel('${h.id}')">Edit</button>
+                    <button class="action-btn delete-btn" onclick="openDeleteModal('hotel', '${h.id}')">Delete</button>
+                </div>
+            </td>
+        </tr>
+    `).join("");
+}
+
+function renderRoomsTable() {
+    const tbody = document.getElementById('rooms-tbody');
+    let allRooms = [];
+    hotels.forEach(h => {
+        if(h.rooms) {
+            h.rooms.forEach((r, idx) => {
+                allRooms.push({ ...r, hotelName: h.name, hotelId: h.id, roomIdx: idx });
+            });
+        }
+    });
+
+    if (allRooms.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No rooms found. Add rooms to hotels first.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = allRooms.map((r, i) => `
+        <tr>
+            <td>${i+1}</td>
+            <td>${r.hotelName}</td>
+            <td><strong>#${r.number}</strong></td>
+            <td>${r.floor}</td>
+            <td>${r.view}</td>
+            <td>$${r.price}</td>
+            <td><span class="status-badge ${r.available ? 'status-available' : 'status-occupied'}">${r.available ? 'Available' : 'Occupied'}</span></td>
+            <td>
+                <button class="action-btn delete-btn" onclick="openDeleteModal('room', '${r.hotelId}', ${r.roomIdx})">Remove</button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+function renderGuestsTable() {
+    const tbody = document.getElementById('guests-tbody');
+    if (guests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No guests registered yet.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = guests.map((g, i) => `
+        <tr>
+            <td>${i+1}</td>
+            <td>#${g.number}</td>
+            <td><strong>${g.name}</strong></td>
+            <td>${g.phone}</td>
+            <td>${g.ssd}</td>
+            <td>
+                <button class="action-btn delete-btn" onclick="openDeleteModal('guest', '${g.id}')">Delete</button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+// --- ALGORITHMS ---
 function runSort(type, algo) {
     const start = performance.now();
     let data = [];
     let boxId = "";
 
     if(type === 'hotels') {
-        data = hotels;
+        data = [...hotels];
         boxId = "hotels-sort-box";
         if(algo === 1) bubbleSort(data, 'name');
         else if(algo === 2) insertionSort(data, 'name');
         else selectionSort(data, 'name');
     } else if(type === 'guests') {
-        data = guests;
+        data = [...guests];
         boxId = "guests-sort-box";
         if(algo === 1) bubbleSort(data, 'number');
         else if(algo === 2) insertionSort(data, 'number');
         else selectionSort(data, 'number');
-    } else if(type === 'rooms') {
-        hotels.forEach(h => {
-            if(algo === 1) bubbleSort(h.rooms, 'number');
-            else if(algo === 2) insertionSort(h.rooms, 'number');
-            else selectionSort(h.rooms, 'number');
-        });
-        toast("All hotel rooms sorted by number.");
-        return;
     }
 
     const end = performance.now();
     const time = (end - start).toFixed(4);
     const algoName = ["Bubble", "Insertion", "Selection"][algo-1];
     
-    let html = `<strong>${algoName} Sort Completed in ${time}ms</strong><br>`;
+    let html = `<strong style="color:#fff">${algoName} Sort Completed in ${time}ms</strong><br>`;
     html += data.map(i => `• ${i.name || "Guest #"+i.number}`).join("<br>");
     document.getElementById(boxId).innerHTML = html;
     toast(`${algoName} sort finished.`);
@@ -279,9 +406,7 @@ function bubbleSort(arr, key) {
     let n = arr.length;
     for (let i = 0; i < n - 1; i++) {
         for (let j = 0; j < n - i - 1; j++) {
-            if (arr[j][key] > arr[j + 1][key]) {
-                [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-            }
+            if (arr[j][key] > arr[j + 1][key]) [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
         }
     }
 }
@@ -308,75 +433,17 @@ function selectionSort(arr, key) {
     }
 }
 
-// --- SEARCH ENGINE ---
-
-function searchGuest() {
-    const id = parseInt(document.getElementById('search-guest-id').value);
-    const result = guests.find(g => g.number === id);
-    const box = document.getElementById('search-guest-box');
+// --- UI HELPERS ---
+function refreshAllData() {
+    const btn = document.querySelector('.refresh-btn');
+    if(btn) btn.classList.add('spinning');
     
-    if(result) {
-        box.innerHTML = `<div style="color:var(--accent)">FOUND: ${result.name} | Phone: ${result.phone} | SSD: ${result.ssd}</div>`;
-        toast("Guest record located.");
-    } else {
-        box.innerHTML = `<div style="color:#ff4b2b">ERROR: Guest ID ${id} not found in system.</div>`;
-        toast("Search failed.", "error");
-    }
-}
-
-function searchAvailable() {
-    let available = [];
-    hotels.forEach(h => {
-        h.rooms.forEach(r => {
-            if(r.available) available.push({ hName: h.name, ...r });
-        });
-    });
-    
-    const box = document.getElementById('search-room-box');
-    if(available.length > 0) {
-        box.innerHTML = available.map(r => `• ${r.hName}: Room ${r.number} (${r.view}) - $${r.price}`).join("<br>");
-        toast(`${available.length} available rooms found.`);
-    } else {
-        box.innerHTML = "No available rooms found across all hotels.";
-    }
-}
-
-// --- DISPLAY & UI HELPERS ---
-
-function displayAll() {
-    let html = "<h3>DATABASE GLOBAL DUMP</h3>";
-    
-    html += "<h4>HOTELS & ROOMS</h4>";
-    hotels.forEach(h => {
-        html += `<div style="margin-bottom:1rem; padding:0.5rem; border-left:2px solid var(--accent)">
-            <strong>${h.name}</strong> (${h.location})<br>`;
-        if(h.rooms.length === 0) html += "<small>No rooms registered.</small>";
-        else {
-            html += h.rooms.map(r => `  - Room ${r.number} | Floor ${r.floor} | ${r.view} | $${r.price} | ${r.available ? '🟢' : '🔴'}`).join("<br>");
-        }
-        html += "</div>";
-    });
-
-    html += "<h4>REGISTERED GUESTS</h4>";
-    html += guests.map(g => `• #${g.number} | ${g.name} | ${g.phone}`).join("<br>");
-    
-    document.getElementById('all-data-dump').innerHTML = html;
-}
-
-function updateStats() {
-    const h = document.getElementById('stat-hotels');
-    const r = document.getElementById('stat-rooms');
-    const g = document.getElementById('stat-guests');
-    const a = document.getElementById('stat-avail');
-    if(h) h.textContent = hotels.length;
-    if(r) r.textContent = hotels.reduce((acc, curr) => acc + curr.rooms.length, 0);
-    if(g) g.textContent = guests.length;
-    if(a) a.textContent = hotels.reduce((acc, curr) => acc + curr.rooms.filter(rm => rm.available).length, 0);
-}
-
-function updateSelects() {
-    const sel = document.getElementById('r-hotel');
-    if(sel) sel.innerHTML = hotels.map((h,i) => `<option value="${i}">${h.name}</option>`).join("");
+    toast("Synchronizing with Firebase...");
+    setTimeout(() => {
+        initSystem();
+        if(btn) btn.classList.remove('spinning');
+        toast("Data synchronized successfully ✓");
+    }, 1000);
 }
 
 function switchSection(id, btn) {
@@ -385,6 +452,48 @@ function switchSection(id, btn) {
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     if(id === 'display-all') displayAll();
+}
+
+function updateStats() {
+    const h = document.getElementById('stat-hotels');
+    const r = document.getElementById('stat-rooms');
+    const g = document.getElementById('stat-guests');
+    const a = document.getElementById('stat-avail');
+    
+    if(h) h.textContent = hotels.length;
+    if(g) g.textContent = guests.length;
+    
+    let totalRooms = 0;
+    let availableRooms = 0;
+    hotels.forEach(hotel => {
+        if(hotel.rooms) {
+            totalRooms += hotel.rooms.length;
+            availableRooms += hotel.rooms.filter(rm => rm.available).length;
+        }
+    });
+    
+    if(r) r.textContent = totalRooms;
+    if(a) a.textContent = availableRooms;
+}
+
+function updateSelects() {
+    const sel = document.getElementById('r-hotel');
+    if(sel) sel.innerHTML = hotels.map((h,i) => `<option value="${i}">${h.name}</option>`).join("");
+}
+
+function displayAll() {
+    let html = "<h3>DATABASE GLOBAL DUMP</h3>";
+    html += "<h4>HOTELS & ROOMS</h4>";
+    hotels.forEach(h => {
+        html += `<div style="margin-bottom:1rem; padding:0.5rem; border-left:2px solid var(--accent)">
+            <strong>${h.name}</strong> (${h.location})<br>`;
+        if(!h.rooms || h.rooms.length === 0) html += "<small>No rooms registered.</small>";
+        else html += h.rooms.map(r => `  - Room ${r.number} | Floor ${r.floor} | ${r.view} | $${r.price} | ${r.available ? '🟢' : '🔴'}`).join("<br>");
+        html += "</div>";
+    });
+    html += "<h4>REGISTERED GUESTS</h4>";
+    html += guests.map(g => `• #${g.number} | ${g.name} | ${g.phone}`).join("<br>");
+    document.getElementById('all-data-dump').innerHTML = html;
 }
 
 function toast(msg, type = "success") {
@@ -396,5 +505,8 @@ function toast(msg, type = "success") {
 }
 
 function clearInputs(ids) {
-    ids.forEach(id => document.getElementById(id).value = "");
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = "";
+    });
 }
