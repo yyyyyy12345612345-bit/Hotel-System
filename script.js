@@ -97,7 +97,21 @@ function dismissIntro() {
 document.addEventListener('DOMContentLoaded', () => {
     init3D();
     startBootSequence();
-    initSystem();
+
+    // Wait for Firebase to be ready before initializing the data system
+    function startWhenFirebaseReady() {
+        if (window.firebaseReady) {
+            console.log("🔥 Firebase detected, starting data system...");
+            initSystem();
+        } else {
+            console.log("⏳ Waiting for Firebase to load...");
+            window.addEventListener('firebase-ready', () => {
+                console.log("🔥 Firebase ready event received, starting data system...");
+                initSystem();
+            });
+        }
+    }
+    startWhenFirebaseReady();
     
     // Live Clock Engine
     setInterval(() => {
@@ -121,29 +135,45 @@ document.addEventListener('DOMContentLoaded', () => {
  * Initializes the system (Empty for Firebase transition)
  */
 function initSystem() {
-    const { onSnapshot, collection, query, orderBy } = window.firebaseMethods;
+    if (!window.db || !window.firebaseMethods) {
+        console.error("❌ Firebase not available! Cannot initialize data system.");
+        toast("Firebase connection failed. Check console.", "error");
+        return;
+    }
+
+    const { onSnapshot, collection } = window.firebaseMethods;
     const db = window.db;
 
-    // Listen for Hotels
+    // Listen for Hotels (real-time sync)
     onSnapshot(collection(db, "hotels"), (snapshot) => {
-        hotels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        hotels = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return { id: doc.id, name: data.name, location: data.location, rooms: data.rooms || [] };
+        });
         updateStats();
         updateSelects();
         if(document.getElementById('display-all').classList.contains('active')) displayAll();
-        console.log("Hotels synced from Firebase");
+        console.log("✅ Hotels synced from Firebase:", hotels.length, "hotels");
+    }, (error) => {
+        console.error("❌ Hotels listener error:", error);
+        toast("Firebase hotel sync error: " + error.message, "error");
     });
 
-    // Listen for Guests
+    // Listen for Guests (real-time sync)
     onSnapshot(collection(db, "guests"), (snapshot) => {
         guests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         updateStats();
         if(document.getElementById('display-all').classList.contains('active')) displayAll();
-        console.log("Guests synced from Firebase");
+        console.log("✅ Guests synced from Firebase:", guests.length, "guests");
+    }, (error) => {
+        console.error("❌ Guests listener error:", error);
+        toast("Firebase guest sync error: " + error.message, "error");
     });
 
     updateStats();
     updateSelects();
-    console.log("System initialized. Waiting for Firebase synchronization...");
+    console.log("✅ System initialized. Real-time Firebase listeners active.");
+    toast("System connected to Firebase ✓");
 }
 
 // --- CORE ACTIONS ---

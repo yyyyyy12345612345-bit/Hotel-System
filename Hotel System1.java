@@ -107,8 +107,16 @@ class Main {
             FirebaseApp.initializeApp(options);
             db = FirestoreClient.getFirestore();
             syncFromFirebase(); // Get cloud data
+            System.out.println("✅ Firebase Connected Successfully!");
+        } catch (java.io.FileNotFoundException fnf) {
+            System.out.println("❌ ERROR: serviceAccountKey.json not found!");
+            System.out.println("   Download it from: Firebase Console > Project Settings > Service Accounts");
+            System.out.println("   Place it in: " + System.getProperty("user.dir"));
+            System.out.println("   Loading local sample data...");
+            addSampleData(); 
         } catch (Exception e) {
-            System.out.println("Firebase Offline. Loading local sample data...");
+            System.out.println("❌ Firebase Error: " + e.getMessage());
+            System.out.println("   Loading local sample data...");
             addSampleData(); 
         }
         // ==========================================

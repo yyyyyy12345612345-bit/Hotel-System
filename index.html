@@ -32,6 +32,11 @@
         // Expose db and methods to global window for script.js access
         window.db = db;
         window.firebaseMethods = { addDoc, collection, onSnapshot, query, orderBy, updateDoc, doc, arrayUnion };
+
+        // Signal that Firebase is ready for script.js
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebase-ready'));
+        console.log("✅ Firebase initialized and ready.");
     </script>
 </head>
 <body>
