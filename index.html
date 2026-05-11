@@ -408,7 +408,15 @@
             <section id="searching" class="section-content">
                 <div class="glass-card">
                     <h2>Search Engine</h2>
-                    <div class="form-row"><input type="number" id="search-guest-id" placeholder="Guest ID..."><button class="action-btn" onclick="searchGuest()">Search Guest</button><button class="action-btn" onclick="searchAvailable()">Search Avail Rooms</button></div>
+                    <div class="form-row">
+                        <input type="number" id="search-guest-id" placeholder="Guest ID...">
+                        <button class="action-btn" onclick="searchGuest()">Search Guest</button>
+                        <button class="action-btn" onclick="searchAvailable()">Search Avail Rooms</button>
+                        <button class="action-btn cancel-btn" onclick="clearSearchResults()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                            CLEAR
+                        </button>
+                    </div>
                     <div id="search-guest-box" class="result-box">Guest results...</div>
                     <div id="search-room-box" class="result-box" style="margin-top:1rem;">Room results...</div>
                 </div>
@@ -422,19 +430,47 @@
             <!-- ═══════════════ REPORTS ═══════════════ -->
             <section id="reports" class="section-content">
                 <div class="glass-card">
-                    <h2>Big O Complexity Analysis</h2>
-                    <pre style="color:var(--accent); font-family:'JetBrains Mono'; line-height:2;">
-1. SORTING (Hotels/Rooms/Guests):
-   • Bubble Sort: O(n²)
-   • Insertion Sort: O(n²)
-   • Selection Sort: O(n²)
+                    <div class="card-header">
+                        <h2>📊 Comprehensive Algorithm Analysis</h2>
+                        <span class="badge badge-online">CSE112 REPORT</span>
+                    </div>
+                    
+                    <div class="report-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 1rem;">
+                        <div class="report-box">
+                            <h3 style="color:var(--accent); margin-bottom:1rem;">1. Time Complexity (Big O)</h3>
+                            <ul style="list-style:none; line-height:1.8; font-size:0.9rem;">
+                                <li><strong>Sorting (Hotels/Guests):</strong> O(n²) — <small>Bubble/Selection/Insertion</small></li>
+                                <li><strong>Binary Search (Guest ID):</strong> O(log n) — <small>Requires sorted data</small></li>
+                                <li><strong>Linear Search (Rooms):</strong> O(h * r) — <small>h: Hotels, r: Rooms per hotel</small></li>
+                                <li><strong>Add/Delete (Firebase):</strong> O(1) — <small>Direct document reference</small></li>
+                                <li><strong>Update (Room Array):</strong> O(r) — <small>Updating room within a hotel array</small></li>
+                            </ul>
+                        </div>
 
-2. SEARCHING:
-   • Linear Search (Available): O(h * r)
-   • Binary Search (Guest): O(log g)
+                        <div class="report-box">
+                            <h3 style="color:var(--accent); margin-bottom:1rem;">2. Space Complexity</h3>
+                            <ul style="list-style:none; line-height:1.8; font-size:0.9rem;">
+                                <li><strong>Data Storage:</strong> O(N) — <small>N: Total items in database</small></li>
+                                <li><strong>Sorting Algorithms:</strong> O(1) — <small>In-place sorting (Auxiliary Space)</small></li>
+                                <li><strong>Searching Logic:</strong> O(1) — <small>Constant space during execution</small></li>
+                                <li><strong>Memory Overhead:</strong> O(D) — <small>D: Depth of the DOM elements rendered</small></li>
+                            </ul>
+                        </div>
 
-3. STORAGE: O(n)
-                    </pre>
+                        <div class="report-box">
+                            <h3 style="color:var(--accent); margin-bottom:1rem;">3. Data Structure Analysis</h3>
+                            <p style="font-size:0.85rem; line-height:1.6; color:var(--text-dim);">
+                                The system utilizes <strong>Hybrid Dynamic Storage</strong>. 
+                                <br>• <strong>Primary Store:</strong> Firebase NoSQL Collection (O(1) Access).
+                                <br>• <strong>Secondary Store:</strong> In-memory JavaScript Arrays (O(1) Reading).
+                                <br>• <strong>Nested Structures:</strong> Room data is stored as a sub-array within Hotel documents for O(1) document retrieval performance.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="result-box" style="margin-top:2rem; border-color:var(--success);">
+                        <strong>Summary:</strong> The system is optimized for real-time reads/writes using NoSQL principles while maintaining classic O(n²) sorting capabilities for educational demonstration in algorithm analysis.
+                    </div>
                 </div>
             </section>
         </main>

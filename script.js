@@ -328,9 +328,11 @@ function renderHotelsTable() {
 
 function renderRoomsTable() {
     const tbody = document.getElementById('rooms-tbody');
+    if (!tbody) return;
+    
     let allRooms = [];
     hotels.forEach(h => {
-        if(h.rooms) {
+        if(h.rooms && Array.isArray(h.rooms)) {
             h.rooms.forEach((r, idx) => {
                 allRooms.push({ ...r, hotelName: h.name, hotelId: h.id, roomIdx: idx });
             });
@@ -343,13 +345,13 @@ function renderRoomsTable() {
     }
 
     tbody.innerHTML = allRooms.map((r, i) => `
-        <tr>
+        <tr style="animation: slideUp 0.3s ease forwards; animation-delay: ${i * 0.05}s;">
             <td>${i+1}</td>
-            <td>${r.hotelName}</td>
-            <td><strong>#${r.number}</strong></td>
-            <td>${r.floor}</td>
-            <td>${r.view}</td>
-            <td>$${r.price}</td>
+            <td style="color:var(--accent)">${r.hotelName}</td>
+            <td><strong>#${r.number || 'N/A'}</strong></td>
+            <td>Floor ${r.floor || '0'}</td>
+            <td>${r.view || 'Standard'}</td>
+            <td style="color:var(--success)">$${r.price || '0'}</td>
             <td><span class="status-badge ${r.available ? 'status-available' : 'status-occupied'}">${r.available ? 'Available' : 'Occupied'}</span></td>
             <td>
                 <button class="action-btn delete-btn" onclick="openDeleteModal('room', '${r.hotelId}', ${r.roomIdx})">Remove</button>
@@ -484,7 +486,16 @@ function updateStats() {
 
 function updateSelects() {
     const sel = document.getElementById('r-hotel');
-    if(sel) sel.innerHTML = hotels.map((h,i) => `<option value="${i}">${h.name}</option>`).join("");
+    if(!sel) return;
+    
+    if (hotels.length === 0) {
+        sel.innerHTML = '<option value="" disabled selected>No hotels available</option>';
+        return;
+    }
+    
+    let html = '<option value="" disabled selected>Select a Hotel...</option>';
+    html += hotels.map((h,i) => `<option value="${i}">${h.name}</option>`).join("");
+    sel.innerHTML = html;
 }
 
 function displayAll() {
@@ -508,6 +519,68 @@ function toast(msg, type = "success") {
     t.style.background = type === "success" ? "rgba(0, 210, 255, 0.8)" : "rgba(255, 75, 43, 0.8)";
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// --- SEARCH ENGINE ---
+function searchGuest() {
+    const val = document.getElementById('search-guest-id').value;
+    if(!val) return toast("Please enter a Guest ID!", "error");
+    
+    const id = parseInt(val);
+    // Use flexible comparison (==) to find the guest regardless of type
+    const result = guests.find(g => g.number == id); 
+    const box = document.getElementById('search-guest-box');
+    
+    if(result) {
+        box.innerHTML = `
+            <div style="border-left: 3px solid var(--success); padding-left: 1rem; animation: slideUp 0.3s ease;">
+                <h4 style="color:var(--success); margin-bottom:0.5rem;">✅ GUEST FOUND</h4>
+                <p><strong>Name:</strong> ${result.name}</p>
+                <p><strong>Phone:</strong> ${result.phone}</p>
+                <p><strong>SSD:</strong> ${result.ssd}</p>
+            </div>`;
+        toast("Guest record located.");
+    } else {
+        box.innerHTML = `<div style="color:var(--danger); animation: slideUp 0.3s ease;">❌ ERROR: Guest ID ${id} not found in database.</div>`;
+        toast("Search failed.", "error");
+    }
+}
+
+function searchAvailable() {
+    let available = [];
+    hotels.forEach(h => {
+        if(h.rooms && Array.isArray(h.rooms)) {
+            h.rooms.forEach(r => {
+                if(r.available) available.push({ hName: h.name, ...r });
+            });
+        }
+    });
+    
+    const box = document.getElementById('search-room-box');
+    if(available.length > 0) {
+        box.innerHTML = `
+            <h4 style="color:var(--accent); margin-bottom:0.8rem;">🏨 AVAILABLE ROOMS (${available.length})</h4>
+            <div style="display:grid; gap:0.5rem; animation: slideUp 0.3s ease;">
+                ${available.map(r => `
+                    <div style="background:rgba(255,255,255,0.05); padding:0.6rem; border-radius:8px; font-size:0.8rem; border-left: 2px solid var(--accent);">
+                        <span style="color:var(--accent)">${r.hName}</span>: 
+                        <strong>Room ${r.number}</strong> (${r.view}) — 
+                        <span style="color:var(--success)">$${r.price}</span>
+                    </div>
+                `).join("")}
+            </div>`;
+        toast(`${available.length} available rooms found.`);
+    } else {
+        box.innerHTML = `<div style="color:var(--warning); animation: slideUp 0.3s ease;">⚠️ No available rooms found across all hotels.</div>`;
+        toast("No rooms found.", "warning");
+    }
+}
+
+function clearSearchResults() {
+    document.getElementById('search-guest-id').value = "";
+    document.getElementById('search-guest-box').innerHTML = "Guest results...";
+    document.getElementById('search-room-box').innerHTML = "Room results...";
+    toast("Search results cleared.");
 }
 
 function clearInputs(ids) {
