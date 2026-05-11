@@ -8,6 +8,31 @@
     <link rel="icon" type="image/png" href="logo/idsuhCBcRZ_logos.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <!-- Firebase SDK (v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Your Firebase Configuration (Real Credentials)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBFRqe3lhvzG0FoN0uAJlAP-VEz9bKLjUc",
+            authDomain: "mre23-4644a.firebaseapp.com",
+            projectId: "mre23-4644a",
+            storageBucket: "mre23-4644a.firebasestorage.app",
+            messagingSenderId: "179268769077",
+            appId: "1:179268769077:web:d9fb8cd25ad284ae0de87c",
+            measurementId: "G-D64MG9L66S"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Expose db and methods to global window for script.js access
+        window.db = db;
+        window.firebaseMethods = { addDoc, collection, onSnapshot, query, orderBy, updateDoc, doc, arrayUnion };
+    </script>
 </head>
 <body>
     <canvas id="canvas-3d" style="position:fixed; inset:0; z-index:0;"></canvas>
@@ -24,7 +49,7 @@
             
             <div class="intro-supervisors" style="margin-top: 1.5rem; margin-bottom: 2.5rem; opacity: 1; transform: none;">
                 <span class="sup-label" style="display: block; font-size: 0.7rem; color: var(--accent); margin-bottom: 0.5rem;">Supervised By</span>
-                <div class="sup-list"><span class="sup-name">Dr. Omar</span> | <span class="sup-name">Dr. Noura</span></div>
+                <div class="sup-list"><span class="sup-name">Dr. Amr</span> | <span class="sup-name">Dr. Noura</span></div>
             </div>
             <button class="enter-btn" onclick="dismissIntro()">ENTER HYPER SYSTEM</button>
         </div>
