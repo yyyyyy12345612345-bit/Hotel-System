@@ -124,10 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    window.addEventListener('firebase-ready', () => {
-        console.log("🔥 Firebase ready, initializing data engine...");
+    // Initialize data engine
+    if (window.firebaseReady) {
+        console.log("🔥 Firebase already ready, initializing data engine...");
         initSystem();
-    });
+    } else {
+        window.addEventListener('firebase-ready', () => {
+            console.log("🔥 Firebase ready event received, initializing data engine...");
+            initSystem();
+        });
+    }
     
     setInterval(() => {
         const c = document.getElementById('side-clock');
