@@ -231,8 +231,8 @@ async function addRoom() {
     const view = document.getElementById('r-view').value;
     const price = parseFloat(document.getElementById('r-price').value);
     const avail = document.getElementById('r-avail').value === "true";
-    const editHotelId = document.getElementById('r-edit-hotel-id').value;
-    const editRoomIdx = document.getElementById('r-edit-idx').value;
+    const editHotelId = document.getElementById('r-edit-hotel-idx').value;
+    const editRoomIdx = document.getElementById('r-edit-room-idx').value;
 
     if(isNaN(num) || isNaN(price)) return toast("Invalid numerical data!", "error");
     
@@ -266,19 +266,19 @@ function editRoom(hotelId, roomIdx) {
     document.getElementById('r-view').value = room.view;
     document.getElementById('r-price').value = room.price;
     document.getElementById('r-avail').value = room.available.toString();
-    document.getElementById('r-edit-hotel-id').value = hotelId;
-    document.getElementById('r-edit-idx').value = roomIdx;
+    document.getElementById('r-edit-hotel-idx').value = hotelId;
+    document.getElementById('r-edit-room-idx').value = roomIdx;
     
     document.getElementById('room-form-title').textContent = "📝 Edit Room";
     document.getElementById('room-submit-btn').textContent = "UPDATE";
     document.getElementById('room-cancel-btn').style.display = "inline-block";
-    switchSection('rooms', document.querySelector('nav button:nth-child(3)'));
+    switchSection('manage-rooms', document.querySelector('nav button:nth-child(3)'));
 }
 
 function cancelRoomEdit() {
-    document.getElementById('r-edit-hotel-id').value = "";
-    document.getElementById('r-edit-idx').value = "";
-    document.getElementById('room-form-title').textContent = "🔑 Add Room to Hotel";
+    document.getElementById('r-edit-hotel-idx').value = "";
+    document.getElementById('r-edit-room-idx').value = "";
+    document.getElementById('room-form-title').textContent = "➕ Add New Room";
     document.getElementById('room-submit-btn').textContent = "ADD";
     document.getElementById('room-cancel-btn').style.display = "none";
     clearInputs(['r-num', 'r-floor', 'r-view', 'r-price']);
