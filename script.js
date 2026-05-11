@@ -231,19 +231,57 @@ async function addRoom() {
     const view = document.getElementById('r-view').value;
     const price = parseFloat(document.getElementById('r-price').value);
     const avail = document.getElementById('r-avail').value === "true";
+    const editHotelId = document.getElementById('r-edit-hotel-id').value;
+    const editRoomIdx = document.getElementById('r-edit-idx').value;
 
     if(isNaN(num) || isNaN(price)) return toast("Invalid numerical data!", "error");
-    if(!hotels[hIdx]) return toast("Select a hotel!", "error");
-
+    
     const { updateDoc, doc } = window.firebaseMethods;
-    const hotel = hotels[hIdx];
-    const newRooms = [...(hotel.rooms || []), { number: num, floor, view, price, available: avail }];
 
     try {
-        await updateDoc(doc(window.db, "hotels", hotel.id), { rooms: newRooms });
-        toast(`Room ${num} initialized in ${hotel.name}.`);
+        if (editHotelId !== "") {
+            const hotel = hotels.find(h => h.id === editHotelId);
+            let updatedRooms = [...hotel.rooms];
+            updatedRooms[parseInt(editRoomIdx)] = { number: num, floor, view, price, available: avail };
+            await updateDoc(doc(window.db, "hotels", editHotelId), { rooms: updatedRooms });
+            toast("Room updated successfully.");
+            cancelRoomEdit();
+        } else {
+            if(!hotels[hIdx]) return toast("Select a hotel!", "error");
+            const hotel = hotels[hIdx];
+            const newRooms = [...(hotel.rooms || []), { number: num, floor, view, price, available: avail }];
+            await updateDoc(doc(window.db, "hotels", hotel.id), { rooms: newRooms });
+            toast(`Room ${num} initialized in ${hotel.name}.`);
+        }
         clearInputs(['r-num', 'r-floor', 'r-view', 'r-price']);
     } catch(e) { toast("Firebase Error: " + e.message, "error"); }
+}
+
+function editRoom(hotelId, roomIdx) {
+    const hotel = hotels.find(h => h.id === hotelId);
+    const room = hotel.rooms[roomIdx];
+    
+    document.getElementById('r-num').value = room.number;
+    document.getElementById('r-floor').value = room.floor;
+    document.getElementById('r-view').value = room.view;
+    document.getElementById('r-price').value = room.price;
+    document.getElementById('r-avail').value = room.available.toString();
+    document.getElementById('r-edit-hotel-id').value = hotelId;
+    document.getElementById('r-edit-idx').value = roomIdx;
+    
+    document.getElementById('room-form-title').textContent = "📝 Edit Room";
+    document.getElementById('room-submit-btn').textContent = "UPDATE";
+    document.getElementById('room-cancel-btn').style.display = "inline-block";
+    switchSection('rooms', document.querySelector('nav button:nth-child(3)'));
+}
+
+function cancelRoomEdit() {
+    document.getElementById('r-edit-hotel-id').value = "";
+    document.getElementById('r-edit-idx').value = "";
+    document.getElementById('room-form-title').textContent = "🔑 Add Room to Hotel";
+    document.getElementById('room-submit-btn').textContent = "ADD";
+    document.getElementById('room-cancel-btn').style.display = "none";
+    clearInputs(['r-num', 'r-floor', 'r-view', 'r-price']);
 }
 
 // --- GUEST ACTIONS ---
@@ -252,15 +290,46 @@ async function addGuest() {
     const name = document.getElementById('g-name').value;
     const phone = document.getElementById('g-phone').value;
     const ssd = document.getElementById('g-ssd').value;
+    const editId = document.getElementById('g-edit-id').value;
 
     if(!num || !name) return toast("Missing guest identity!", "error");
 
-    const { addDoc, collection } = window.firebaseMethods;
+    const { addDoc, updateDoc, doc, collection } = window.firebaseMethods;
     try {
-        await addDoc(collection(window.db, "guests"), { number: num, name, phone, ssd });
-        toast(`Guest '${name}' registered.`);
+        if (editId) {
+            await updateDoc(doc(window.db, "guests", editId), { number: num, name, phone, ssd });
+            toast("Guest profile updated.");
+            cancelGuestEdit();
+        } else {
+            await addDoc(collection(window.db, "guests"), { number: num, name, phone, ssd });
+            toast(`Guest '${name}' registered.`);
+        }
         clearInputs(['g-num', 'g-name', 'g-phone', 'g-ssd']);
     } catch(e) { toast("Firebase Error: " + e.message, "error"); }
+}
+
+function editGuest(id) {
+    const guest = guests.find(g => g.id === id);
+    if(!guest) return;
+    
+    document.getElementById('g-num').value = guest.number;
+    document.getElementById('g-name').value = guest.name;
+    document.getElementById('g-phone').value = guest.phone;
+    document.getElementById('g-ssd').value = guest.ssd;
+    document.getElementById('g-edit-id').value = id;
+    
+    document.getElementById('guest-form-title').textContent = "📝 Edit Guest";
+    document.getElementById('guest-submit-btn').textContent = "UPDATE";
+    document.getElementById('guest-cancel-btn').style.display = "inline-block";
+    switchSection('guests', document.querySelector('nav button:nth-child(4)'));
+}
+
+function cancelGuestEdit() {
+    document.getElementById('g-edit-id').value = "";
+    document.getElementById('guest-form-title').textContent = "👥 Add New Guest";
+    document.getElementById('guest-submit-btn').textContent = "ADD";
+    document.getElementById('guest-cancel-btn').style.display = "none";
+    clearInputs(['g-num', 'g-name', 'g-phone', 'g-ssd']);
 }
 
 // --- DELETE OPERATIONS ---
@@ -354,7 +423,10 @@ function renderRoomsTable() {
             <td style="color:var(--success)">$${r.price || '0'}</td>
             <td><span class="status-badge ${r.available ? 'status-available' : 'status-occupied'}">${r.available ? 'Available' : 'Occupied'}</span></td>
             <td>
-                <button class="action-btn delete-btn" onclick="openDeleteModal('room', '${r.hotelId}', ${r.roomIdx})">Remove</button>
+                <div class="row-actions">
+                    <button class="action-btn edit-btn" onclick="editRoom('${r.hotelId}', ${r.roomIdx})">Edit</button>
+                    <button class="action-btn delete-btn" onclick="openDeleteModal('room', '${r.hotelId}', ${r.roomIdx})">Remove</button>
+                </div>
             </td>
         </tr>
     `).join("");
@@ -374,7 +446,10 @@ function renderGuestsTable() {
             <td>${g.phone}</td>
             <td>${g.ssd}</td>
             <td>
-                <button class="action-btn delete-btn" onclick="openDeleteModal('guest', '${g.id}')">Delete</button>
+                <div class="row-actions">
+                    <button class="action-btn edit-btn" onclick="editGuest('${g.id}')">Edit</button>
+                    <button class="action-btn delete-btn" onclick="openDeleteModal('guest', '${g.id}')">Delete</button>
+                </div>
             </td>
         </tr>
     `).join("");
@@ -398,6 +473,17 @@ function runSort(type, algo) {
         if(algo === 1) bubbleSort(data, 'number');
         else if(algo === 2) insertionSort(data, 'number');
         else selectionSort(data, 'number');
+    } else if(type === 'rooms') {
+        boxId = "rooms-sort-box";
+        let allRooms = [];
+        hotels.forEach(h => {
+            if(h.rooms && Array.isArray(h.rooms)) {
+                let sortedH = [...h.rooms];
+                selectionSort(sortedH, 'number');
+                sortedH.forEach((r, idx) => allRooms.push({ ...r, hotelName: h.name, hotelId: h.id, roomIdx: idx }));
+            }
+        });
+        data = allRooms;
     }
 
     const end = performance.now();
@@ -408,11 +494,15 @@ function runSort(type, algo) {
     html += data.map((i, idx) => {
         const label = type === 'rooms' ? `${i.hotelName}: Room ${i.number}` : (i.name || "Guest #"+i.number);
         const delArgs = type === 'rooms' ? `'room', '${i.hotelId}', ${i.roomIdx}` : `'${type === 'hotels' ? 'hotel' : 'guest'}', '${i.id}'`;
+        const editFunc = type === 'rooms' ? `editRoom('${i.hotelId}', ${i.roomIdx})` : (type === 'hotels' ? `editHotel('${i.id}')` : `editGuest('${i.id}')`);
         
         return `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; background:rgba(255,255,255,0.03); padding:0.4rem 0.8rem; border-radius:8px;">
                 <span>• ${label}</span>
-                <button class="action-btn delete-btn" style="padding:0.2rem 0.5rem; font-size:0.6rem;" onclick="openDeleteModal(${delArgs})">Delete</button>
+                <div class="row-actions">
+                    <button class="action-btn edit-btn" style="padding:0.2rem 0.5rem; font-size:0.6rem;" onclick="${editFunc}">Edit</button>
+                    <button class="action-btn delete-btn" style="padding:0.2rem 0.5rem; font-size:0.6rem;" onclick="openDeleteModal(${delArgs})">Delete</button>
+                </div>
             </div>
         `;
     }).join("");
@@ -551,7 +641,10 @@ function searchGuest() {
                     <p><strong>Phone:</strong> ${result.phone}</p>
                     <p><strong>SSD:</strong> ${result.ssd}</p>
                 </div>
-                <button class="action-btn delete-btn" onclick="openDeleteModal('guest', '${result.id}')">Delete</button>
+                <div class="row-actions">
+                    <button class="action-btn edit-btn" onclick="editGuest('${result.id}')">Edit</button>
+                    <button class="action-btn delete-btn" onclick="openDeleteModal('guest', '${result.id}')">Delete</button>
+                </div>
             </div>`;
         toast("Guest record located.");
     } else {
@@ -582,7 +675,10 @@ function searchAvailable() {
                             <strong>Room ${r.number}</strong> (${r.view}) — 
                             <span style="color:var(--success)">$${r.price}</span>
                         </div>
-                        <button class="action-btn delete-btn" style="padding:0.2rem 0.5rem; font-size:0.6rem;" onclick="openDeleteModal('room', '${r.hotelId}', ${r.roomIdx})">Delete</button>
+                        <div class="row-actions">
+                            <button class="action-btn edit-btn" style="padding:0.2rem 0.5rem; font-size:0.6rem;" onclick="editRoom('${r.hotelId}', ${r.roomIdx})">Edit</button>
+                            <button class="action-btn delete-btn" style="padding:0.2rem 0.5rem; font-size:0.6rem;" onclick="openDeleteModal('room', '${r.hotelId}', ${r.roomIdx})">Delete</button>
+                        </div>
                     </div>
                 `).join("")}
             </div>`;
