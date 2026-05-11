@@ -404,8 +404,19 @@ function runSort(type, algo) {
     const time = (end - start).toFixed(4);
     const algoName = ["Bubble", "Insertion", "Selection"][algo-1];
     
-    let html = `<strong style="color:#fff">${algoName} Sort Completed in ${time}ms</strong><br>`;
-    html += data.map(i => `• ${i.name || "Guest #"+i.number}`).join("<br>");
+    let html = `<strong style="color:#fff">${algoName} Sort Completed in ${time}ms</strong><br><div style="margin-top:0.8rem;">`;
+    html += data.map((i, idx) => {
+        const label = type === 'rooms' ? `${i.hotelName}: Room ${i.number}` : (i.name || "Guest #"+i.number);
+        const delArgs = type === 'rooms' ? `'room', '${i.hotelId}', ${i.roomIdx}` : `'${type === 'hotels' ? 'hotel' : 'guest'}', '${i.id}'`;
+        
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; background:rgba(255,255,255,0.03); padding:0.4rem 0.8rem; border-radius:8px;">
+                <span>• ${label}</span>
+                <button class="action-btn delete-btn" style="padding:0.2rem 0.5rem; font-size:0.6rem;" onclick="openDeleteModal(${delArgs})">Delete</button>
+            </div>
+        `;
+    }).join("");
+    html += "</div>";
     document.getElementById(boxId).innerHTML = html;
     toast(`${algoName} sort finished.`);
 }
@@ -533,11 +544,14 @@ function searchGuest() {
     
     if(result) {
         box.innerHTML = `
-            <div style="border-left: 3px solid var(--success); padding-left: 1rem; animation: slideUp 0.3s ease;">
-                <h4 style="color:var(--success); margin-bottom:0.5rem;">✅ GUEST FOUND</h4>
-                <p><strong>Name:</strong> ${result.name}</p>
-                <p><strong>Phone:</strong> ${result.phone}</p>
-                <p><strong>SSD:</strong> ${result.ssd}</p>
+            <div style="border-left: 3px solid var(--success); padding-left: 1rem; animation: slideUp 0.3s ease; display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <h4 style="color:var(--success); margin-bottom:0.5rem;">✅ GUEST FOUND</h4>
+                    <p><strong>Name:</strong> ${result.name}</p>
+                    <p><strong>Phone:</strong> ${result.phone}</p>
+                    <p><strong>SSD:</strong> ${result.ssd}</p>
+                </div>
+                <button class="action-btn delete-btn" onclick="openDeleteModal('guest', '${result.id}')">Delete</button>
             </div>`;
         toast("Guest record located.");
     } else {
@@ -562,10 +576,13 @@ function searchAvailable() {
             <h4 style="color:var(--accent); margin-bottom:0.8rem;">🏨 AVAILABLE ROOMS (${available.length})</h4>
             <div style="display:grid; gap:0.5rem; animation: slideUp 0.3s ease;">
                 ${available.map(r => `
-                    <div style="background:rgba(255,255,255,0.05); padding:0.6rem; border-radius:8px; font-size:0.8rem; border-left: 2px solid var(--accent);">
-                        <span style="color:var(--accent)">${r.hName}</span>: 
-                        <strong>Room ${r.number}</strong> (${r.view}) — 
-                        <span style="color:var(--success)">$${r.price}</span>
+                    <div style="background:rgba(255,255,255,0.05); padding:0.6rem; border-radius:8px; font-size:0.8rem; border-left: 2px solid var(--accent); display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <span style="color:var(--accent)">${r.hName}</span>: 
+                            <strong>Room ${r.number}</strong> (${r.view}) — 
+                            <span style="color:var(--success)">$${r.price}</span>
+                        </div>
+                        <button class="action-btn delete-btn" style="padding:0.2rem 0.5rem; font-size:0.6rem;" onclick="openDeleteModal('room', '${r.hotelId}', ${r.roomIdx})">Delete</button>
                     </div>
                 `).join("")}
             </div>`;
